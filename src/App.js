@@ -117,7 +117,7 @@ function ChatMessage(props) {
 
   return (<>
     <div className={`message ${messageClass}`}>
-      <img src={photoURL} alt = ""/>
+      <img src={photoURL ? photoURL : "https://picsum.photos/400/400"} alt = ""/>
       <p>{text}</p>
     </div>
   </>)
