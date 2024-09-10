@@ -1,13 +1,13 @@
-import React, { useRef, useState } from 'react';
-import './App.css';
+import React, { useRef, useState, useEffect } from "react";
+import "./App.css";
 
 import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "firebase/compat/auth";
-import 'firebase/compat/analytics';
+import "firebase/compat/analytics";
 
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { useCollectionData } from 'react-firebase-hooks/firestore';
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useCollectionData } from "react-firebase-hooks/firestore";
 
 firebase.initializeApp({
   apiKey: "AIzaSyAMEMc3DP7ObRnVIt14YmSwor2Oj261cy8",
@@ -16,15 +16,13 @@ firebase.initializeApp({
   storageBucket: "chatapp-4c259.appspot.com",
   messagingSenderId: "1067777082479",
   appId: "1:1067777082479:web:0174a751e508d921f5f99a",
-  measurementId: "G-NPJ2VP03B0"
+  measurementId: "G-NPJ2VP03B0",
 });
 
 const auth = firebase.auth();
 const firestore = firebase.firestore();
 
-
 function App() {
-
   const [user] = useAuthState(auth);
 
   return (
@@ -34,45 +32,63 @@ function App() {
         <SignOut />
       </header>
 
-      <section>
-        {user ? <ChatRoom /> : <SignIn />}
-      </section>
-
+      <section>{user ? <ChatRoom /> : <SignIn />}</section>
     </div>
   );
 }
 
 function SignIn() {
-
   const signInWithGoogle = () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider);
-  }
+  };
 
   return (
     <>
-      <button className="sign-in" onClick={signInWithGoogle}>Sign in with Google</button>
+      <button className="sign-in" onClick={signInWithGoogle}>
+        Sign in with Google
+      </button>
     </>
-  )
-
+  );
 }
 
 function SignOut() {
-  return auth.currentUser && (
-    <button className="sign-out" onClick={() => auth.signOut()}>Sign Out</button>
-  )
+  return (
+    auth.currentUser && (
+      <button className="sign-out" onClick={() => auth.signOut()}>
+        Sign Out
+      </button>
+    )
+  );
 }
-
 
 function ChatRoom() {
   const dummy = useRef();
-  const messagesRef = firestore.collection('messages');
-  const query = messagesRef.orderBy('createdAt').limit(25);
+  const messagesRef = firestore.collection("messages");
+  const query = messagesRef.orderBy("createdAt");
 
-  const [messages] = useCollectionData(query, { idField: 'id' });
+  const [messages] = useCollectionData(query, { idField: "id" });
+  const [limitedMessages, setLimitedMessages] = useState([]);
+  const [formValue, setFormValue] = useState("");
 
-  const [formValue, setFormValue] = useState('');
+  useEffect(() => {
+    if (messages) {
+      // Ensure we only store the latest 25 messages
+      if (messages.length > 25) {
+        const limited = messages.slice(-25); // Get only the last 25 messages
+        setLimitedMessages(limited);
+      } else {
+        setLimitedMessages(messages);
+      }
+    }
+  }, [messages]);
 
+  // Auto-scroll to the bottom when new messages arrive
+  useEffect(() => {
+    if (dummy.current) {
+      dummy.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [limitedMessages]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -83,46 +99,54 @@ function ChatRoom() {
       text: formValue,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       uid,
-      photoURL
-    })
+      photoURL,
+    });
 
-    setFormValue('');
-    dummy.current.scrollIntoView({ behavior: 'smooth' });
-  }
+    setFormValue("");
+    dummy.current.scrollIntoView({ behavior: "smooth" });
+  };
 
-  return (<>
-    <main>
+  return (
+    <>
+      <main>
+        {limitedMessages &&
+          limitedMessages.map((msg) => (
+            <ChatMessage key={msg.id} message={msg} />
+          ))}
+        <span ref={dummy}></span>
+      </main>
 
-      {messages && messages.map(msg => <ChatMessage key={msg.id} message={msg} />)}
-
-      <span ref={dummy}></span>
-
-    </main>
-
-    <form onSubmit={sendMessage}>
-
-      <input value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="say something nice" />
-
-      <button type="submit" disabled={!formValue}>🚀</button>
-
-    </form>
-  </>)
+      <form onSubmit={sendMessage}>
+        <input
+          value={formValue}
+          onChange={(e) => setFormValue(e.target.value)}
+          placeholder="say something nice"
+        />
+        <button type="submit" disabled={!formValue}>
+          🚀
+        </button>
+      </form>
+    </>
+  );
 }
-
 
 function ChatMessage(props) {
   const { text, uid, photoURL } = props.message;
 
-  const messageClass = uid === auth.currentUser.uid ? 'sent' : 'received';
+  const messageClass = uid === auth.currentUser.uid ? "sent" : "received";
 
-  return (<>
-    <div className={`message ${messageClass}`}>
-      <img src={photoURL ? photoURL : "https://picsum.photos/400/400"} alt = ""/>
-      <p>{text}</p>
-    </div>
-  </>)
+  return (
+    <>
+      <div className={`message ${messageClass}`}>
+        <img
+          src={photoURL ? photoURL : "https://picsum.photos/400/400"}
+          alt=""
+        />
+        <p>{text}</p>
+      </div>
+    </>
+  );
 }
-
 
 export default App;
 
